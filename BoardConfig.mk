@@ -128,13 +128,16 @@ TW_DEFAULT_LANGUAGE := zh_CN
 TW_SCREEN_BLANK_ON_BOOT := true
 TW_INPUT_BLACKLIST := "hbtp_vm"
 TW_USE_TOOLBOX := true
-TW_EXCLUDE_TWRPAPP := true
+# 注：TWRP 3.7/android-11 源码里没有 TW_EXCLUDE_TWRPAPP 这个变量（已核对全仓库），
+#     写了不生效，TWRP app 本来也不会被打进 recovery，保留注释仅为记录。
+#TW_EXCLUDE_TWRPAPP := true
 TW_NO_SCREEN_TIMEOUT := true
 TW_MAX_BRIGHTNESS := 255
 TW_DEFAULT_BRIGHTNESS := 128
 TW_BRIGHTNESS_PATH := /sys/class/backlight/panel0-backlight/brightness
 TW_DEVICE_VERSION := OWW251
-TW_SKIP_COMPATIBILITY_CHECK := true
+# 注：TW_SKIP_COMPATIBILITY_CHECK 在 TWRP 3.7/android-11 里不存在，写了不生效
+#TW_SKIP_COMPATIBILITY_CHECK := true
 
 # 本机 ABL 不传 androidboot.usbcontroller，TWRP 自带的 legacy android_usb init rc
 # 和 configfs 触发器都拿不到 UDC 名，adb/MTP 会整体失效。
@@ -145,9 +148,13 @@ TW_EXCLUDE_DEFAULT_USB_INIT := true
 TW_OVERRIDE_SYSTEM_PROPS := "ro.build.fingerprint=OPPO/OWW251/OWW251:11/RKQ1.220916.001.11_A.87.250318010337/01:user/release-keys;ro.product.device=OWW251;ro.product.model=OWW251;ro.hardware=qcom"
 
 # ---------------------------------------------------------------------------
-# 修复 1：动态分区必须开这个才会 map /dev/block/mapper/*
+# 修复 1：动态分区映射
 # ---------------------------------------------------------------------------
-TW_INCLUDE_LOGICAL := true
+# 注：TW_INCLUDE_LOGICAL 不是 TWRP 变量（全仓库无此名，写了不生效）。
+#     真正让 recovery map /dev/block/mapper/* 的是产品层的
+#     PRODUCT_USE_DYNAMIC_PARTITIONS := true（见 twrp_OWW251.mk），
+#     它会给 recovery 注入 -DPRODUCT_USE_DYNAMIC_PARTITIONS=1 → TW_IS_SUPER=1。
+#TW_INCLUDE_LOGICAL := true
 
 # ---------------------------------------------------------------------------
 # 修复 2：fastbootd（Reboot 菜单的 Fastboot 项 + sys.usb.config=fastboot）

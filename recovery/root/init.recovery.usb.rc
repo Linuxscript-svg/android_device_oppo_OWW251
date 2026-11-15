@@ -105,9 +105,25 @@ on property:sys.usb.ffs.ready=1 && property:sys.usb.ffs.mtp.ready=1 && property:
 
 # ---------------------------------------------------------------------------
 # fastbootd
+#
+# 这里必须先清 sys.usb.ffs.ready 再启动 fastbootd：
+# TWRP 的 init.rc 只在 sys.usb.config=none 时才把 ffs.ready 置 0，
+# 从 adb 直接切到 fastboot 时它还是 adbd 留下的 1，
+# 于是 "config=fastboot && ffs.ready=1" 的绑定块会立刻执行，
+# 而这时 fastbootd 还没打开 /dev/usb-ffs/fastboot -> UDC 写入失败（EINVAL），
+# 之后 fastbootd 再把 ffs.ready 置 1 也不是属性变化，绑定块不会重跑 -> 整条 USB 消失。
+# 先置 0，等 fastbootd 自己把 ffs.ready 置 1 后再绑定。
 # ---------------------------------------------------------------------------
 on property:sys.usb.config=fastboot && property:sys.usb.configfs=1
+    write /config/usb_gadget/g1/UDC "none"
+    rm /config/usb_gadget/g1/configs/b.1/f1
+    rm /config/usb_gadget/g1/configs/b.1/f2
+    setprop sys.usb.ffs.ready 0
     start fastbootd
+
+# adbd 停了（切 mode、sideload 结束等）就把 ffs ready 清掉，避免上面那种残留
+on property:init.svc.adbd=stopped
+    setprop sys.usb.ffs.ready 0
 
 on property:sys.usb.ffs.ready=1 && property:sys.usb.config=fastboot && property:sys.usb.configfs=1
     write /config/usb_gadget/g1/UDC "none"

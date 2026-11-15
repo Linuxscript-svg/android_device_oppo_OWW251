@@ -2,16 +2,13 @@
 # TWRP product config - OPPO Watch X2 (OWW251)
 #
 
-# 基础 AOSP product（必须有；vendor/twrp/config/common.mk 不继承任何 base，
-# catfish 等手表树同样先继承这一行）
+# 基础 AOSP product（必须有；vendor/twrp/config/common.mk 不继承任何 base）
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
 
 $(call inherit-product, vendor/twrp/config/common.mk)
 $(call inherit-product, device/oppo/OWW251/device.mk)
 
-# 动态分区必须开：twrp.fstab 里 system/system_ext/vendor/product 走
-# flags=logical + /dev/block/mapper/*，没有 liblp 这条路径就挂不上。
-# 只开"用"，不开"造"：TWRP 不出 super 镜像，所以 BUILD_SUPER_PARTITION 保持 false。
+# 动态分区必须开：twrp.fstab 的 logical 挂载和 fastbootd 都依赖 liblp/super
 PRODUCT_USE_DYNAMIC_PARTITIONS := true
 PRODUCT_BUILD_SUPER_PARTITION := false
 

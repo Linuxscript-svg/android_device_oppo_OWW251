@@ -8,7 +8,9 @@
 #     只要链接建不出来，Mount 页面就会“所有分区都挂不上”，超时/失败全是它引起的连带现象。
 #   * /dev/qseecom、/dev/ion 权限：vendor keymaster / gatekeeper 以 system:drmrpc 运行，必须能打开
 
-import /init.recovery.qcom_decrypt.rc
+# 【二分排查 step1】crypto 关闭时不要 import 解密用的 rc（会 start servicemanager/
+# hwservicemanager/keymaster，服务起不来会让 TWRP 卡在启动图）
+#import /init.recovery.qcom_decrypt.rc
 
 on init
     write /sys/class/backlight/panel0-backlight/brightness 200

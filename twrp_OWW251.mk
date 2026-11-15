@@ -14,7 +14,9 @@ $(call inherit-product, device/oppo/OWW251/device.mk)
 #   1) 编出 fastbootd 并置 TW_IS_SUPER=1（TWRP 能 map /dev/block/mapper/*）
 #   2) Reboot 菜单出现 Fastboot 项（对应 TW_INCLUDE_FASTBOOTD）
 #   3) 引入 liblp / health@2.1 等动态分区依赖
-PRODUCT_USE_DYNAMIC_PARTITIONS := true
+# 【二分排查 step1】先关掉，等 TWRP 能进主界面再打开（super/liblp 也在启动路径上）
+#PRODUCT_USE_DYNAMIC_PARTITIONS := true
+PRODUCT_USE_DYNAMIC_PARTITIONS := false
 # TWRP 只需要 recovery.img，不需要生成 super 镜像
 PRODUCT_BUILD_SUPER_PARTITION := false
 

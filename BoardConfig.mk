@@ -159,7 +159,8 @@ TW_OVERRIDE_SYSTEM_PROPS := "ro.build.fingerprint=OPPO/OWW251/OWW251:11/RKQ1.220
 # ---------------------------------------------------------------------------
 # 修复 2：fastbootd（Reboot 菜单的 Fastboot 项 + sys.usb.config=fastboot）
 # ---------------------------------------------------------------------------
-TW_INCLUDE_FASTBOOTD := true
+# 【二分排查 step1】暂时关闭：先让 TWRP 能进主界面，再逐项打开
+#TW_INCLUDE_FASTBOOTD := true
 
 # ---------------------------------------------------------------------------
 # 修复 3：EDL / Download 菜单项（对应主题里的 tw_edl_mode / tw_download_mode）
@@ -170,9 +171,12 @@ TW_HAS_DOWNLOAD_MODE := true
 # ---------------------------------------------------------------------------
 # 修复 4：/data 解密（FBE v2 + metadata 加密 + wrappedkey_v0）
 # ---------------------------------------------------------------------------
-TW_INCLUDE_CRYPTO := true
-TW_INCLUDE_CRYPTO_FBE := true
-TW_INCLUDE_FBE_METADATA_DECRYPT := true
+# 【二分排查 step1】暂时全部关闭。TWRP 启动后在 logo 之后第一件事就是初始化分区与加密，
+# crypto 链任何一环（vold/keymaster/servicemanager）起不来，就会一直停在启动图。
+# 先确认能进主界面，再逐项打开（顺序建议：dynamic → fastbootd → crypto）。
+#TW_INCLUDE_CRYPTO := true
+#TW_INCLUDE_CRYPTO_FBE := true
+#TW_INCLUDE_FBE_METADATA_DECRYPT := true
 
 # 如果上面三行编译后 /data 仍解不开，再打开下面这行试 vendor vold 路线：
 #TW_CRYPTO_USE_SYSTEM_VOLD := true

@@ -13,7 +13,7 @@ ALLOW_MISSING_DEPENDENCIES := true
 # Architecture
 # 本机为纯 32 位用户空间（ro.product.cpu.abilist=armeabi-v7a,armeabi，无 abilist64）
 TARGET_ARCH := arm
-TARGET_ARCH_VARIANT := armv7-a-neon
+TARGET_ARCH_VARIANT := armv8-a
 TARGET_CPU_ABI := armeabi-v7a
 TARGET_CPU_ABI2 := armeabi
 TARGET_CPU_VARIANT := cortex-a53

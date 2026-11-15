@@ -1,10 +1,3 @@
 #
-# Copyright (C) 2026 The Android Open Source Project
-# Copyright (C) 2026 SebaUbuntu's TWRP device tree generator
+# add_lunch_combo 在 Android 11 已废弃，改用 AndroidProducts.mk 里的 COMMON_LUNCH_CHOICES
 #
-# SPDX-License-Identifier: Apache-2.0
-#
-
-add_lunch_combo omni_OWW251-user
-add_lunch_combo omni_OWW251-userdebug
-add_lunch_combo omni_OWW251-eng

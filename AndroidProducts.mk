@@ -1,14 +1,10 @@
 #
-# Copyright (C) 2026 The Android Open Source Project
-# Copyright (C) 2026 SebaUbuntu's TWRP device tree generator
-#
-# SPDX-License-Identifier: Apache-2.0
+# TWRP 设备树：OPPO Watch X2 (OWW251)
 #
 
 PRODUCT_MAKEFILES := \
-    $(LOCAL_DIR)/omni_OWW251.mk
+    $(LOCAL_DIR)/twrp_OWW251.mk
 
 COMMON_LUNCH_CHOICES := \
-    omni_OWW251-user \
-    omni_OWW251-userdebug \
-    omni_OWW251-eng
+    twrp_OWW251-eng \
+    twrp_OWW251-userdebug

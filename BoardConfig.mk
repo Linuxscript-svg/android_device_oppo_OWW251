@@ -142,7 +142,11 @@ TW_SKIP_COMPATIBILITY_CHECK := true
 #（configfs + ffs.mtp 全套，UDC 名在 init.recovery.qcom.rc 里写死）。
 TW_EXCLUDE_DEFAULT_USB_INIT := true
 
-TW_OVERRIDE_SYSTEM_PROPS := "ro.build.fingerprint=OPPO/OWW251/OWW251:11/RKQ1.220916.001.11_A.87.250318010337/01:user/release-keys;ro.product.device=OWW251;ro.product.model=OWW251;ro.hardware=qcom"
+# TWRP 运行时会用这里的键值覆盖系统 prop（twrp 启动阶段 property_override）。
+# ro.product.name 必须补上：zip 包里的 updater assert 常见写法是
+#   getprop("ro.product.name") == "OWW251" || abort("E3004: This package is for ...")
+# 不覆盖的话这里是 lunch 名 twrp_OWW251，官方/第三方包会直接拒装。
+TW_OVERRIDE_SYSTEM_PROPS := "ro.build.fingerprint=OPPO/OWW251/OWW251:11/RKQ1.220916.001.11_A.87.250318010337/01:user/release-keys;ro.product.name=OWW251;ro.product.device=OWW251;ro.product.model=OWW251;ro.product.brand=OPPO;ro.product.manufacturer=OPPO;ro.hardware=qcom"
 
 # ---------------------------------------------------------------------------
 # 修复 1：动态分区必须开这个才会 map /dev/block/mapper/*

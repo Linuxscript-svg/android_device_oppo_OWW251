@@ -1,0 +1,28 @@
+# OPPO Watch X2 (OWW251) - TWRP 挂载表（v2 格式）
+#
+# TWRP 优先读 /etc/twrp.fstab；读不到才退回 /etc/recovery.fstab。
+# 这一份必须用 TWRP 的 flags 语法，Mount / Backup / Wipe 页面都是从它生成的。
+#
+# 关键点：
+#   * 动态分区（system/system_ext/vendor/product）用 logical 标志 + /dev/block/mapper/<name>
+#     配合 BoardConfig 里的 TW_INCLUDE_LOGICAL，TWRP 才会从 super 元数据把 dm 设备建出来
+#   * 本机没有 odm、没有 SD 卡槽，不要再写进去（写了只会报 mount 失败）
+#   * /data 是 f2fs + metadata 加密 + wrappedkey_v0，加密标志写进 flags 供 TWRP 判断
+#
+# mount_point        fstype   device                                    flags
+
+# ---- 动态分区（super 内） ----
+/system_root         ext4     /dev/block/mapper/system                  flags=display="System";logical;backup=1
+/system_ext          ext4     /dev/block/mapper/system_ext              flags=display="System_ext";logical;backup=1
+/vendor              ext4     /dev/block/mapper/vendor                  flags=display="Vendor";logical;backup=1
+/product             ext4     /dev/block/mapper/product                 flags=display="Product";logical;backup=1
+
+# ---- 物理分区 ----
+/super               emmc     /dev/block/bootdevice/by-name/super       flags=display="Super";backup=0;flashimg=1
+/boot                emmc     /dev/block/bootdevice/by-name/boot        flags=display="Boot";backup=1;flashimg=1
+/recovery            emmc     /dev/block/bootdevice/by-name/recovery    flags=display="Recovery";backup=1;flashimg=1
+/misc                emmc     /dev/block/bootdevice/by-name/misc        flags=display="Misc";backup=0
+/cache               ext4     /dev/block/bootdevice/by-name/cache       flags=display="Cache";wipeingui;backup=1
+/metadata            ext4     /dev/block/bootdevice/by-name/metadata    flags=display="Metadata";backup=0
+/persist             ext4     /dev/block/bootdevice/by-name/persist     flags=display="Persist";backup=0
+/data                f2fs     /dev/block/bootdevice/by-name/userdata    flags=display="Data";backup=1;wipeingui;fileencryption=aes-256-xts:aes-256-cts:v2+emmc_optimized+wrappedkey_v0

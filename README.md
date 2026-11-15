@@ -1,92 +1,100 @@
-# OPPO Watch X2 (OWW251) TWRP 设备树
+# OPPO Watch X2 (OWW251) TWRP 设备树 — 修复版
 
-由 `recovery.img` 自动生成（twrpdtgen 3.0 + AIK 解包），并按镜像中真实数据修正。
+原始设备树由 twrpdtgen 从 `recovery.img` 生成（本仓库即升级后的版本）。
+本版针对实机反馈的四个问题逐条修好了配置，全部数值来自真机 GPT / super 元数据 /
+原厂 `fstab.qcom`，不再使用生成器占位值。
 
-## 设备信息（均来自镜像内 build.prop / recovery.fstab）
+| 问题 | 根因 | 本版修复 |
+| --- | --- | --- |
+| 所有分区挂不上 | ① 动态分区没开 `TW_INCLUDE_LOGICAL`，`/dev/block/mapper/*` 根本没建；② fstab 里 logical 分区的设备名写的是 `system` 这种裸名；③ 写了不存在的 `odm`、SD 卡；④ `/dev/block/by-name` 无人创建（fastbootd 也依赖它） | BoardConfig 开 `TW_INCLUDE_LOGICAL`；重写 `twrp.fstab`（`/dev/block/mapper/<name>` + `logical`）；删掉 odm/sdcard；init rc 里显式建 `bootdevice` 与 `by-name` 两个链接 |
+| /data 解不开 | 编译时 `TW_INCLUDE_CRYPTO` 是注释掉的（现镜像 binary 里有 `No crypto support was compiled into this build.`），且 ramdisk 里没有 vendor keymaster/gatekeeper，init 也不会启动它们 | 打开 `TW_INCLUDE_CRYPTO` + `TW_INCLUDE_CRYPTO_FBE` + `TW_INCLUDE_FBE_METADATA_DECRYPT`；从本机 vendor 提取 keymaster 4.0/4.1、gatekeeper 1.0 及依赖库；新增 `init.recovery.qcom_decrypt.rc` 启动 HAL |
+| fastbootd 不正常 | `TW_INCLUDE_FASTBOOTD` 未开，Reboot 菜单没有 Fastboot 入口，TWRP 也不会设 `sys.usb.config=fastboot`；另外 fastbootd 需要 fs_mgr 格式的 `/etc/recovery.fstab` 和 `/dev/block/by-name/super` | 开 `TW_INCLUDE_FASTBOOTD`；`recovery.fstab` 用 fs_mgr 格式（logical 分区 + super）；init rc 建 `by-name` 链接；cmdline 补 `androidboot.dynamic_partitions=true` |
+| 进不了 EDL | `TW_HAS_EDL_MODE` 未开，`tw_edl_mode=0`，主题里 EDL 按钮直接被隐藏 | 开 `TW_HAS_EDL_MODE`（同时开 `TW_HAS_DOWNLOAD_MODE` 给 Download）；提供 `/system/bin/rebootedl.sh` 兜底 |
+| adb / MTP 都用不了 | ① ABL 不传 `androidboot.usbcontroller`（abl 里确实没有这一项）→ `ro.boot.usbcontroller` 空 → `sys.usb.controller` 没人设 → TWRP 所有 `write UDC ${sys.usb.controller}` 写空值失败，gadget 从未绑定；② TWRP 自带 `init.recovery.usb.rc` 只有 legacy `android_usb` 写法，没有 `ffs.mtp` 的 configfs 规则，MTP 起不来 | `sys.usb.controller` 在 init rc 里写死为 `4e00000.dwc3`（DT: `dwc3@4e00000`）；`TW_EXCLUDE_DEFAULT_USB_INIT := true` 并换成设备树自己的 configfs USB rc（adb / mtp / mtp,adb / fastboot / sideload 全套） |
 
-| 项目 | 值 |
-| --- | --- |
-| 品牌 / 厂商 | OPPO |
-| 设备代号 | OWW251 |
-| 市场名 | OPPO Watch（ro.oppo.market.name）；对应 OPPO Watch X2 机型 |
-| 硬件版本 | XK911 |
-| 平台 | Qualcomm monaco / monaco_go（安卓穿戴参考平台，TARGET_BOARD_PLATFORM=monaco） |
-| 系统 | Android 11（SDK 30），ColorOS Watch V7.0 |
-| 固件版本 | OWW251_11_A.87（2025-03-18） |
-| 架构 | 纯 32 位 arm，armeabi-v7a / armeabi（无 64 位 ABI） |
-| 屏幕 | 466×466 圆形 AMOLED，density 320，`ro.oplus.wear.screen.round=true` |
-| 分区方案 | A-only（非 A/B）+ 动态分区（super 内含 system/system_ext/vendor/product/odm） |
-| userdata | f2fs + metadata 加密 / wrappedkey（metadata 分区独立挂载） |
-| AVB | 已开启（镜像尾部为 AVBv2 签名） |
-| 内核镜像 | 32 位 ARM zImage，header v2，page 4096 |
+详见 `docs/04_修复说明.md`。
+
+## 相对原树的改动
+
+新增：
+
+```
+recovery/root/init.recovery.qcom_decrypt.rc
+recovery/root/init.recovery.usb.rc
+recovery/root/system/etc/twrp.fstab
+recovery/root/system/bin/rebootedl.sh
+recovery/root/system/bin/android.hardware.keymaster@{4.0,4.1}-service-qti
+recovery/root/system/bin/android.hardware.gatekeeper@1.0-service-qti
+recovery/root/system/lib/*.so + system/lib/hw/android.hardware.gatekeeper@1.0-impl-qti.so
+recovery/root/vendor/etc/vintf/manifest.xml
+.github/workflows/build.yml
+```
+
+改写：`BoardConfig.mk`（分区尺寸/组名/内核头/TW_* 开关）、`recovery.fstab`、
+`init.recovery.qcom.rc`、`AndroidProducts.mk`、`twrp_OWW251.mk`、`device.mk`。
+
+删除：`omni_OWW251.mk`（AndroidProducts 本来也没引用它）。
 
 ## 目录结构
 
-仓库根目录即 `device/oppo/OWW251/`：
-
 ```
 .
-├── Android.bp
-├── Android.mk
-├── AndroidProducts.mk
-├── BoardConfig.mk          # 板级配置（已按镜像真实值修正）
-├── device.mk
-├── omni_OWW251.mk          # product 配置
-├── extract-files.sh        # 从真机导 vendor blobs（需要真机 /system 可读）
-├── setup-makefiles.sh
-├── vendorsetup.sh
-├── recovery.fstab          # TWRP fstab（挂载点与 fstype 取自原镜像）
-├── prebuilt/
-│   ├── zImage              # 从 recovery.img 提取的内核
-│   ├── dtb.img             # 从 recovery.img 提取的 dtb（250 KB）
-│   └── dtbo.img            # 从 recovery.img 提取的 recovery_dtbo（586 KB）
-└── recovery/
-    └── root/
-        └── init.recovery.qcom.rc   # 原镜像 recovery 的 qcom init 规则（含背光/UFS 处理）
-
-docs/                               # 原始解析证据（镜像头、关键属性、原厂 fstab）
+├── BoardConfig.mk                  # 分区尺寸、内核头、TW_* 开关
+├── device.mk / twrp_OWW251.mk      # product 配置
+├── recovery/root/                  # 整棵树拷进 recovery ramdisk 根
+│   ├── init.recovery.qcom.rc       # /dev/block 链接、TEE 权限、UDC 名、可执行位兜底
+│   ├── init.recovery.qcom_decrypt.rc # servicemanager/keymaster/gatekeeper 启动
+│   ├── init.recovery.usb.rc        # configfs gadget：adb / mtp,adb / fastboot / sideload
+│   ├── system/etc/twrp.fstab       # TWRP 挂载表（v2 格式）
+│   ├── system/etc/recovery.fstab   # init + fastbootd 用（fs_mgr 格式）
+│   ├── system/bin/                 # keymaster/gatekeeper 服务、rebootedl.sh
+│   ├── system/lib/                 # HAL 依赖库（含 libQSEEComAPI、libqtikeymaster4）
+│   │   └── hw/                     # gatekeeper 的 hw 实现模块
+│   └── vendor/etc/vintf/manifest.xml
+├── prebuilt/                       # 原机 zImage / dtb / recovery_dtbo
+├── docs/                           # 镜像解析证据 + 修复说明
+└── .github/workflows/build.yml     # TWRP 12.1 minimal manifest 云编译
 ```
 
-## 编译方式
+## 编译
+
+推到 GitHub 后跑 **Build TWRP (OWW251)** 工作流，产物是
+`out/target/product/OWW251/recovery.img`（约 16 MB，AVB 会补齐到 64 MiB 分区大小）。
+
+本地编译：
 
 ```bash
-# 以 TWRP minimal manifest（Android 11）为例
-mkdir -p device/oppo
-git clone https://github.com/Linuxscript-svg/android_device_oppo_OWW251.git device/oppo/OWW251
-. build/envsetup.sh
-lunch omni_OWW251-eng
-mka recoveryimage
+repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1
+repo sync -j8
+mkdir -p device/oppo && cp -a <本仓库> device/oppo/OWW251
+source build/envsetup.sh && lunch twrp_OWW251-eng && m recoveryimage
 ```
 
-产物：`out/target/product/OWW251/recovery.img`
+> 用的是 mkbootimg 直出（header v2 + dtb + recovery_dtbo，地址与原厂一致），
+> 不需要再拿 stock 头二次打包。
 
-刷入（需先解锁 bootloader）：
+## 刷入
 
-```bash
-fastboot flash recovery recovery.img
-# 或临时启动：fastboot boot recovery.img
+```sh
+adb push recovery.img /tmp/
+adb shell dd if=/tmp/recovery.img of=/dev/block/bootdevice/by-name/recovery
+adb reboot recovery
 ```
 
-## 生成器已修正的项目
+（TWRP 的 adbd 默认就是 root，不需要 su。）
+回滚原厂 recovery：用 OFP 里的 `recovery.img` 同样 dd 回去。
 
-1. `TARGET_USES_64_BIT_BINDER := true` 已删除——本机是纯 32 位用户空间，开启会导致 32 位 recovery 链接/运行 64 位 binder 失败。
-2. 补齐 `BOARD_KERNEL_OFFSET=0x00008000`、`BOARD_DTB_OFFSET=0x01f00000`、`--os_version 11.0.0 --os_patch_level 2024-03`，否则打包出的 boot 头与真机不匹配、无法启动。
-3. `BOARD_KERNEL_IMAGE_NAME` 由 `Image` 改为 `zImage`（8 MB 以上 32 位 ARM 内核，不是 arm64 Image）。
-4. `BOARD_USERDATAIMAGE_FILE_SYSTEM_TYPE` 由 ext4 改为 f2fs（fstab 中 userdata 为 f2fs）。
-5. 安全补丁改为镜像实际值 2024-03-05（生成器给的 2021-08-01 是错的），并保留防回滚 PLATFORM_SECURITY_PATCH hack。
-6. 设备名由 Qualcomm 参考板 `qualcomm/monaco_go` 改为 `oppo/OWW251`，product 名 `omni_OWW251`，fingerprint 用真机 `OPPO/OWW251/OWW251:11/RKQ1.220916.001.11_A.87...`。
-7. 增加 `BOARD_USES_METADATA_PARTITION := true`（fstab 存在独立 metadata 分区）与 `TW_ROUND_SCREEN := true`（圆形表盘）。
-8. 解密相关 `TW_INCLUDE_CRYPTO` 默认注释——缺 vendor keymaster/gatekeeper blob，开了会编译/运行失败。
+## 菜单项没出现时的替代入口
 
-## 必须用真机确认的项（生成器无法从 recovery.img 得到）
+* EDL：TWRP 终端里执行 `rebootedl.sh`，或 PC 上 `adb reboot edl`。
+* fastbootd：PC 上 `adb reboot fastboot`（写入 boot-fastboot BCB，ABL 会带 `--fastboot` 启动 recovery）。
+* 挂载：TWRP 终端里 `ls /dev/block/mapper` 看 dm 设备是否建出来。
 
-1. **super 分区实际大小**：已按真机反馈改为 **4 GiB**（`BOARD_SUPER_PARTITION_SIZE := 4294967296`，动态分区组可用 4 GiB − 4 MiB）。仍建议用 `printgpt` 拿到精确扇区数后核对一次（`adb shell ls -l /dev/block/by-name/super`）。
-2. **boot / recovery 分区实际大小**：现在按镜像文件大小填 64 MB（`67108864`），如真机分区不同需同步改。
-3. **屏幕分辨率/偏移**：density 320 与 466×466 已由属性与官方规格推定；若 TWRP 界面偏移，需调 `TW_Y_OFFSET` / `TW_X_OFFSET`。
-4. **触摸输入**：`TW_INPUT_BLACKLIST := "hbtp_vm"` 为生成器猜测的输入设备名，若触摸无响应需真机 `getevent -p` 后修正。
-5. **解密**：/data 为 metadata 加密，要挂载需补 vendor HAL blobs 并打开加密开关。
+## 已知仍需实机确认
 
-## 备注
-
-- 内核、dtb、dtbo 均直接取自本机 `recovery.img`，因此与出厂固件版本（11_A.87）严格对应；换固件版本后应重新提取。
-- 该机为 `user` 版本（`ro.debuggable=0`、`ro.adb.secure=1`），TWRP 的 adb 需自行处理授权。
+1. **/data 解密**：crypto 已经编进去了，keymaster/gatekeeper 也已就位，但本机是
+   `metadata 加密 + wrappedkey_v0 + inlinecrypt`，TWRP 对这套组合的支持要在表上跑一次才知道。
+   进 TWRP 后把 `/tmp/recovery.log` 拉出来，看 `crypto` 相关行即可定位（见 docs/05）。
+2. **触摸**：`TW_INPUT_BLACKLIST := "hbtp_vm"` 沿用原树，若触摸无响应需 `getevent -p` 换设备名。
+3. **亮度**：`TW_BRIGHTNESS_PATH` 用的是 `/sys/class/backlight/panel0-backlight/brightness`，
+   与 stock init 写的路径一致。

@@ -1,6 +1,0 @@
-# OWW251 device tree (OPPO Watch X2) — Qualcomm monaco_go / arm32 / Android 11
-
-TWRP device tree for OPPO Watch X2 (OWW251), extracted from `recovery.img` and corrected
-against real device values. See `README.md` for details.
-
-Partition scheme: A-only, dynamic partitions (super). Pure 32-bit arm (armeabi-v7a).

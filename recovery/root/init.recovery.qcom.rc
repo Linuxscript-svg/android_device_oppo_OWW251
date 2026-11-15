@@ -1,38 +1,42 @@
-# Copyright (c) 2017-2018,2020 The Linux Foundation. All rights reserved.
+# OPPO Watch X2 (OWW251) - recovery init 扩展
+# TWRP 的 init.rc 会 import /init.recovery.${ro.hardware}.rc，本机 ro.hardware=qcom。
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#     * Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#     * Neither the name of The Linux Foundation nor
-#       the names of its contributors may be used to endorse or promote
-#       products derived from this software without specific prior written
-#       permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-# NON-INFRINGEMENT ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-# EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
-# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
+# 修复内容：
+#   * /dev/block/bootdevice 与 /dev/block/by-name 两个符号链接
+#     - 前者是 stock recovery 的做法，twrp.fstab 里的物理分区全走它
+#     - 后者是 fastbootd 找 super 分区用的路径（AOSP fastbootd 硬编码 /dev/block/by-name/super）
+#     只要链接建不出来，Mount 页面就会“所有分区都挂不上”，超时/失败全是它引起的连带现象。
+#   * /dev/qseecom、/dev/ion 权限：vendor keymaster / gatekeeper 以 system:drmrpc 运行，必须能打开
+
+import /init.recovery.qcom_decrypt.rc
 
 on init
     write /sys/class/backlight/panel0-backlight/brightness 200
     setprop sys.usb.configfs 1
+
+    # 关键：ABL 不传 androidboot.usbcontroller（abl 里没有这个 cmdline 项），
+    # ro.boot.usbcontroller 为空 -> 下面的 property 触发器不会跑 -> sys.usb.controller 空，
+    # TWRP 的 "write UDC ${sys.usb.controller}" 全部失败，USB 整条链路起不来。
+    # DT 里 USB 控制器是 dwc3@4e00000，configfs 的 UDC 名就是 4e00000.dwc3。
+    setprop sys.usb.controller 4e00000.dwc3
+
+    # git 在 Windows 上经常丢可执行位，这里兜底；不解压后 chmod 也能正常执行
+    chmod 0755 /system/bin/android.hardware.keymaster@4.1-service-qti
+    chmod 0755 /system/bin/android.hardware.keymaster@4.0-service-qti
+    chmod 0755 /system/bin/android.hardware.gatekeeper@1.0-service-qti
+    chmod 0755 /system/bin/rebootedl.sh
 
 on property:ro.boot.usbcontroller=*
     setprop sys.usb.controller ${ro.boot.usbcontroller}
     write /sys/class/udc/${ro.boot.usbcontroller}/device/../mode peripheral
 
 on fs
+    # UFS 控制器 -> bootdevice / by-name
     wait /dev/block/platform/soc/${ro.boot.bootdevice}
     symlink /dev/block/platform/soc/${ro.boot.bootdevice} /dev/block/bootdevice
+    symlink /dev/block/platform/soc/${ro.boot.bootdevice}/by-name /dev/block/by-name
+
+    # TEE 节点（keymaster/gatekeeper 走 QSEECom）
+    chmod 0660 /dev/qseecom
+    chown system drmrpc /dev/qseecom
+    chmod 0666 /dev/ion

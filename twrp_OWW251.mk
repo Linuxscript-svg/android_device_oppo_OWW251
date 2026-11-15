@@ -1,23 +1,15 @@
 #
-# TWRP product config for OPPO Watch X2 (OWW251)
-# 用于 minimal-manifest-twrp/platform_manifest_twrp_aosp (twrp-11 + twrp-extras.xml)
+# TWRP product config - OPPO Watch X2 (OWW251)
 #
 
-# 继承基础 AOSP product
-$(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
-
-# 继承 TWRP 公共配置（twrp-extras.xml 里的 vendor/twrp）
 $(call inherit-product, vendor/twrp/config/common.mk)
-
-# 继承本机 device.mk
 $(call inherit-product, device/oppo/OWW251/device.mk)
 
 PRODUCT_DEVICE := OWW251
 PRODUCT_NAME := twrp_OWW251
 PRODUCT_BRAND := OPPO
-PRODUCT_MODEL := OPPO Watch X2
+PRODUCT_MODEL := OWW251
 PRODUCT_MANUFACTURER := OPPO
-
 PRODUCT_GMS_CLIENTID_BASE := android-oppo
 
 PRODUCT_BUILD_PROP_OVERRIDES += \

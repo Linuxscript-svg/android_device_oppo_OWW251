@@ -1,0 +1,85 @@
+name: Build TWRP (OWW251)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    steps:
+      - name: Checkout device tree
+        uses: actions/checkout@v4
+
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            git gnupg flex bison build-essential zip unzip curl wget \
+            zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 \
+            libncurses5 lib32z1 lib32stdc++6 libxml2-utils xsltproc \
+            fontconfig python-is-python3 ccache rsync bc lz4 cpio \
+            openjdk-11-jdk-headless libssl-dev
+          curl -sSL https://storage.googleapis.com/git-repo-downloads/repo -o /tmp/repo
+          sudo install -m 755 /tmp/repo /usr/local/bin/repo
+          gcc --version | head -1; python3 --version; repo --version | head -1
+
+      - name: repo init and sync (TWRP 12.1 minimal manifest)
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/twrp"
+          cd "$GITHUB_WORKSPACE/twrp"
+          repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1
+          repo sync -j"$(nproc)" -c --no-clone-bundle --no-tags --force-sync
+          df -h /
+
+      - name: Install device tree
+        run: |
+          mkdir -p twrp/device/oppo
+          rsync -a --exclude .git --exclude .github "$GITHUB_WORKSPACE/" twrp/device/oppo/OWW251/
+          chmod +x twrp/device/oppo/OWW251/recovery/root/system/bin/* || true
+          find twrp/device/oppo/OWW251 -maxdepth 2 -type d | sort
+
+      - name: Build recoveryimage
+        run: |
+          cd twrp
+          export ALLOW_MISSING_DEPENDENCIES=true
+          export LC_ALL=C
+          source build/envsetup.sh
+          lunch twrp_OWW251-eng
+          m recoveryimage -j"$(nproc)"
+          ls -la out/target/product/OWW251/*.img
+
+      - name: Upload flashable image
+        uses: actions/upload-artifact@v4
+        with:
+          name: twrp-OWW251-${{ github.run_number }}
+          path: |
+            twrp/out/target/product/OWW251/recovery.img
+          retention-days: 30
+
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-${{ github.run_number }}
+          path: |
+            twrp/out/*.log
+            twrp/out/verbose.log.gz
+          if-no-files-found: ignore
+          retention-days: 7

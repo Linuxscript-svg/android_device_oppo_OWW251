@@ -80,8 +80,7 @@ fastboot flash recovery recovery.img
 
 ## 必须用真机确认的项（生成器无法从 recovery.img 得到）
 
-1. **super 分区实际大小**：`BOARD_SUPER_PARTITION_SIZE` / `BOARD_QUALCOMM_DYNAMIC_PARTITIONS_SIZE` 目前是 8.5 GB 占位值，对这块表几乎肯定偏大。真机执行
-   `adb shell ls -l /dev/block/by-name/super` 或 `adb shell cat /proc/partitions` 后替换，否则打包镜像会超出分区。
+1. **super 分区实际大小**：已按真机反馈改为 **4 GiB**（`BOARD_SUPER_PARTITION_SIZE := 4294967296`，动态分区组可用 4 GiB − 4 MiB）。仍建议用 `printgpt` 拿到精确扇区数后核对一次（`adb shell ls -l /dev/block/by-name/super`）。
 2. **boot / recovery 分区实际大小**：现在按镜像文件大小填 64 MB（`67108864`），如真机分区不同需同步改。
 3. **屏幕分辨率/偏移**：density 320 与 466×466 已由属性与官方规格推定；若 TWRP 界面偏移，需调 `TW_Y_OFFSET` / `TW_X_OFFSET`。
 4. **触摸输入**：`TW_INPUT_BLACKLIST := "hbtp_vm"` 为生成器猜测的输入设备名，若触摸无响应需真机 `getevent -p` 后修正。

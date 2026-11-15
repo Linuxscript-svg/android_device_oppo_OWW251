@@ -76,10 +76,10 @@ BOARD_USES_METADATA_PARTITION := true
 # TODO: 以下两个数值为生成器占位值，必须用真机上的实际尺寸替换：
 #   adb shell ls -l /dev/block/by-name/super
 #   adb shell cat /proc/partitions
-BOARD_SUPER_PARTITION_SIZE := 9126805504 # TODO: Fix hardcoded value
+BOARD_SUPER_PARTITION_SIZE := 4294967296 # 4 GiB（真机 super 约 4G，待 printgpt 精确核对扇区数）
 BOARD_SUPER_PARTITION_GROUPS := qualcomm_dynamic_partitions
 BOARD_QUALCOMM_DYNAMIC_PARTITIONS_PARTITION_LIST := system system_ext vendor product odm
-BOARD_QUALCOMM_DYNAMIC_PARTITIONS_SIZE := 9122611200 # TODO: Fix hardcoded value
+BOARD_QUALCOMM_DYNAMIC_PARTITIONS_SIZE := 4290772992 # 4 GiB - 4 MiB（末尾留 super metadata 空间）
 
 # Platform
 TARGET_BOARD_PLATFORM := monaco

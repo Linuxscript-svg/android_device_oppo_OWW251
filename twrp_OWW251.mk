@@ -9,8 +9,10 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
 $(call inherit-product, vendor/twrp/config/common.mk)
 $(call inherit-product, device/oppo/OWW251/device.mk)
 
-# 【当前基线】先关掉动态分区：TWRP 能进主界面后再打开（super/liblp 也在启动路径上）
-PRODUCT_USE_DYNAMIC_PARTITIONS := false
+# 动态分区必须开：twrp.fstab 里 system/system_ext/vendor/product 走
+# flags=logical + /dev/block/mapper/*，没有 liblp 这条路径就挂不上。
+# 只开"用"，不开"造"：TWRP 不出 super 镜像，所以 BUILD_SUPER_PARTITION 保持 false。
+PRODUCT_USE_DYNAMIC_PARTITIONS := true
 PRODUCT_BUILD_SUPER_PARTITION := false
 
 PRODUCT_DEVICE := OWW251

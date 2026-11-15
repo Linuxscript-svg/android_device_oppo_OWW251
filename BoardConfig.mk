@@ -46,11 +46,11 @@ BOARD_KERNEL_TAGS_OFFSET := 0x00000100
 BOARD_DTB_OFFSET := 0x01f00000
 BOARD_KERNEL_PAGESIZE := 4096
 
-# 注意：末尾的 androidboot.dynamic_partitions 必须和 PRODUCT_USE_DYNAMIC_PARTITIONS 保持一致。
-# 当前基线是关掉动态分区（twrp_OWW251.mk 里 := false），所以这里也不再声明，
-# 否则 init/fs_mgr 会认为设备有 super，启动阶段去 map /dev/block/mapper/*，又是一条可能卡住的路。
-# 将来打开动态分区时，把 androidboot.dynamic_partitions=true 追加回来即可。
-BOARD_KERNEL_CMDLINE := console=ttyMSM0,115200n8 earlycon=msm_geni_serial,0x4a98000 androidboot.hardware=qcom androidboot.console=ttyMSM0 androidboot.memcg=1 lpm_levels.sleep_disabled=1 video=vfb:640x400,bpp=32,memsize=3072000 msm_rtb.filter=0x237 service_locator.enable=1 swiotlb=2048 vmalloc=300M loop.max_part=7 iptable_raw.raw_before_defrag=1 ip6table_raw.raw_before_defrag=1 cgroup.memory=nokmem,nosocket buildvariant=user
+# androidboot.dynamic_partitions=true 与 twrp_OWW251.mk 里的
+# PRODUCT_USE_DYNAMIC_PARTITIONS := true 必须成对出现：
+# 前者给 init/fs_mgr/fastbootd 提供 ro.boot.dynamic_partitions，后者让 TWRP
+# 编进 liblp 并置 TW_IS_SUPER，两边缺一个，/dev/block/mapper/* 都建不出来。
+BOARD_KERNEL_CMDLINE := console=ttyMSM0,115200n8 earlycon=msm_geni_serial,0x4a98000 androidboot.hardware=qcom androidboot.console=ttyMSM0 androidboot.memcg=1 lpm_levels.sleep_disabled=1 video=vfb:640x400,bpp=32,memsize=3072000 msm_rtb.filter=0x237 service_locator.enable=1 swiotlb=2048 vmalloc=300M loop.max_part=7 iptable_raw.raw_before_defrag=1 ip6table_raw.raw_before_defrag=1 cgroup.memory=nokmem,nosocket buildvariant=user androidboot.dynamic_partitions=true
 
 # prebuilt 内核 / dtb / recovery_dtbo（全部取自本机 recovery.img）
 TARGET_FORCE_PREBUILT_KERNEL := true

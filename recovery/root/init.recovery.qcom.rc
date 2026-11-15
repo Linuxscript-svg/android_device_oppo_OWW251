@@ -23,9 +23,6 @@ on init
     setprop sys.usb.controller 4e00000.dwc3
 
     # git 在 Windows 上经常丢可执行位，这里兜底；不解压后 chmod 也能正常执行
-    chmod 0755 /system/bin/android.hardware.keymaster@4.1-service-qti
-    chmod 0755 /system/bin/android.hardware.keymaster@4.0-service-qti
-    chmod 0755 /system/bin/android.hardware.gatekeeper@1.0-service-qti
     chmod 0755 /system/bin/rebootedl.sh
 
 on property:ro.boot.usbcontroller=*

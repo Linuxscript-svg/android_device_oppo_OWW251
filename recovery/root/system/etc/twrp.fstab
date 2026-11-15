@@ -7,7 +7,9 @@
 #   * 动态分区（system/system_ext/vendor/product）用 logical 标志 + /dev/block/mapper/<name>
 #     配合 BoardConfig 里的 TW_INCLUDE_LOGICAL，TWRP 才会从 super 元数据把 dm 设备建出来
 #   * 本机没有 odm、没有 SD 卡槽，不要再写进去（写了只会报 mount 失败）
-#   * /data 是 f2fs + metadata 加密 + wrappedkey_v0，加密标志写进 flags 供 TWRP 判断
+#   * 【已移除 data 解密】/data 这一行不再带 fileencryption= 标志。
+#     一旦带上，TWRP 挂载 /data 时会进入 FBE 解密流程（等 keystore/keymaster），
+#     设备上服务起不来就会一直卡住。现在 /data 当普通 f2fs 处理。
 #
 # mount_point        fstype   device                                    flags
 
@@ -25,4 +27,4 @@
 /cache               ext4     /dev/block/bootdevice/by-name/cache       flags=display="Cache";wipeingui;backup=1
 /metadata            ext4     /dev/block/bootdevice/by-name/metadata    flags=display="Metadata";backup=0
 /persist             ext4     /dev/block/bootdevice/by-name/persist     flags=display="Persist";backup=0
-/data                f2fs     /dev/block/bootdevice/by-name/userdata    flags=display="Data";backup=1;wipeingui;fileencryption=aes-256-xts:aes-256-cts:v2+emmc_optimized+wrappedkey_v0
+/data                f2fs     /dev/block/bootdevice/by-name/userdata    flags=display="Data";backup=1;wipeingui

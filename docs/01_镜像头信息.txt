@@ -1,0 +1,30 @@
+# recovery.img 解析结果
+# 文件: recovery.img  大小: 67108864 (64 MB)
+# 类型: Android boot image (AOSP), AVBv2 签名尾部
+
+magic                  ANDROID!
+image type             AOSP
+header_version         2
+page_size              4096
+kernel_size            14141032
+kernel_offset          0x00008000
+ramdisk_size           11695520
+ramdisk_offset         0x01000000
+ramdisk_comp           gzip
+second_size            0
+tags_offset            0x00000100
+dtb_size               250567
+dtb_offset             0x01f00000
+recovery_dtbo_size     586456
+recovery_dtbo_offset   25845760
+os_version             11.0.0
+os_patch_level         2024-03
+board name             (空)
+
+# cmdline
+console=ttyMSM0,115200n8 earlycon=msm_geni_serial,0x4a98000 androidboot.hardware=qcom androidboot.console=ttyMSM0 androidboot.memcg=1 lpm_levels.sleep_disabled=1 video=vfb:640x400,bpp=32,memsize=3072000 msm_rtb.filter=0x237 service_locator.enable=1 swiotlb=2048 vmalloc=300M loop.max_part=7 iptable_raw.raw_before_defrag=1 ip6table_raw.raw_before_defrag=1 cgroup.memory=nokmem,nosocket buildvariant=user
+
+# 内核
+32-bit ARM zImage（file: Linux kernel ARM boot executable zImage, little-endian）
+# ramdisk
+gzip 压缩 newc cpio，解包后 19569152 字节

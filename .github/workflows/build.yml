@@ -1,16 +1,19 @@
-name: Build TWRP (OWW251)
+# 说明：实际出包用的是 twrp_builder 仓库的 nabu.yml（docker ubuntu:20.04 + 托管 runner）。
+# 本文件仅作"设备树自包含构建"的参考模板，默认不随 push 触发：
+#   1) 托管 runner 已没有 ubuntu-20.04/22.04 镜像，宿主机直接编会缺 focal 依赖
+#   2) AOSP 全量源码 30GB+，默认 runner 磁盘放不下
+# 需要时在 Actions 页面手动 Run workflow。
+name: Build TWRP (OWW251) [manual]
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
 
 permissions:
   contents: read
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
       - name: Checkout device tree
@@ -40,11 +43,11 @@ jobs:
           sudo install -m 755 /tmp/repo /usr/local/bin/repo
           gcc --version | head -1; python3 --version; repo --version | head -1
 
-      - name: repo init and sync (TWRP 12.1 minimal manifest)
+      - name: repo init and sync (TWRP 11 minimal manifest - matches the previously booting build)
         run: |
           mkdir -p "$GITHUB_WORKSPACE/twrp"
           cd "$GITHUB_WORKSPACE/twrp"
-          repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1
+          repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-11
           repo sync -j"$(nproc)" -c --no-clone-bundle --no-tags --force-sync
           df -h /
 

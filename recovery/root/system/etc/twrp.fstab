@@ -7,17 +7,17 @@
 #   * 动态分区（system/system_ext/vendor/product）用 logical 标志 + /dev/block/mapper/<name>
 #     配合 BoardConfig 里的 TW_INCLUDE_LOGICAL，TWRP 才会从 super 元数据把 dm 设备建出来
 #   * 本机没有 odm、没有 SD 卡槽，不要再写进去（写了只会报 mount 失败）
-#   * 【已移除 data 解密】/data 这一行不再带 fileencryption= 标志。
-#     一旦带上，TWRP 挂载 /data 时会进入 FBE 解密流程（等 keystore/keymaster），
-#     设备上服务起不来就会一直卡住。现在 /data 当普通 f2fs 处理。
+#   * system/system_ext/vendor/product 这四个镜像带 ext4 的 shared_blocks 特性，
+#     内核只允许只读挂载（rw 会直接 EINVAL），所以必须加 fsflags=ro
+#   * /data 是 f2fs，默认不加密，直接挂
 #
 # mount_point        fstype   device                                    flags
 
 # ---- 动态分区（super 内） ----
-/system_root         ext4     /dev/block/mapper/system                  flags=display="System";logical;backup=1
-/system_ext          ext4     /dev/block/mapper/system_ext              flags=display="System_ext";logical;backup=1
-/vendor              ext4     /dev/block/mapper/vendor                  flags=display="Vendor";logical;backup=1
-/product             ext4     /dev/block/mapper/product                 flags=display="Product";logical;backup=1
+/system_root         ext4     /dev/block/mapper/system                  flags=display="System";logical;backup=1;fsflags=ro
+/system_ext          ext4     /dev/block/mapper/system_ext              flags=display="System_ext";logical;backup=1;fsflags=ro
+/vendor              ext4     /dev/block/mapper/vendor                  flags=display="Vendor";logical;backup=1;fsflags=ro
+/product             ext4     /dev/block/mapper/product                 flags=display="Product";logical;backup=1;fsflags=ro
 
 # ---- 物理分区 ----
 /super               emmc     /dev/block/bootdevice/by-name/super       flags=display="Super";backup=0;flashimg=1

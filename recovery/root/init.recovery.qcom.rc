@@ -1,28 +1,24 @@
 # OPPO Watch X2 (OWW251) - recovery init 扩展
 # TWRP 的 init.rc 会 import /init.recovery.${ro.hardware}.rc，本机 ro.hardware=qcom。
 #
-# 修复内容：
-#   * /dev/block/bootdevice 与 /dev/block/by-name 两个符号链接
-#     - 前者是 stock recovery 的做法，twrp.fstab 里的物理分区全走它
-#     - 后者是 fastbootd 找 super 分区用的路径（AOSP fastbootd 硬编码 /dev/block/by-name/super）
-#     只要链接建不出来，Mount 页面就会“所有分区都挂不上”，超时/失败全是它引起的连带现象。
-#   * /dev/qseecom、/dev/ion 权限：vendor keymaster / gatekeeper 以 system:drmrpc 运行，必须能打开
-
-# 【二分排查 step1】crypto 关闭时不要 import 解密用的 rc（会 start servicemanager/
-# hwservicemanager/keymaster，服务起不来会让 TWRP 卡在启动图）
-#import /init.recovery.qcom_decrypt.rc
+# 这里只做两件事：
+#   1. 建 /dev/block/bootdevice 和 /dev/block/by-name 两个链接
+#      - bootdevice 是 stock 的写法，twrp.fstab 里物理分区全走它
+#      - by-name 是 fastbootd 找 super 用的（AOSP fastbootd 硬编码 /dev/block/by-name/super）
+#      这两个链接缺失就是“所有分区都挂不上 / fastbootd 也不正常”的根因。
+#   2. 兜底设置 sys.usb.controller（本机 ABL 不传 androidboot.usbcontroller）
 
 on init
     write /sys/class/backlight/panel0-backlight/brightness 200
     setprop sys.usb.configfs 1
 
     # 关键：ABL 不传 androidboot.usbcontroller（abl 里没有这个 cmdline 项），
-    # ro.boot.usbcontroller 为空 -> 下面的 property 触发器不会跑 -> sys.usb.controller 空，
+    # ro.boot.usbcontroller 为空 -> 下面那个 property 触发器不会跑 -> sys.usb.controller 空，
     # TWRP 的 "write UDC ${sys.usb.controller}" 全部失败，USB 整条链路起不来。
     # DT 里 USB 控制器是 dwc3@4e00000，configfs 的 UDC 名就是 4e00000.dwc3。
     setprop sys.usb.controller 4e00000.dwc3
 
-    # git 在 Windows 上经常丢可执行位，这里兜底；不解压后 chmod 也能正常执行
+    # git 在 Windows 上经常丢可执行位，这里兜底
     chmod 0755 /system/bin/rebootedl.sh
 
 on property:ro.boot.usbcontroller=*
@@ -34,8 +30,3 @@ on fs
     wait /dev/block/platform/soc/${ro.boot.bootdevice}
     symlink /dev/block/platform/soc/${ro.boot.bootdevice} /dev/block/bootdevice
     symlink /dev/block/platform/soc/${ro.boot.bootdevice}/by-name /dev/block/by-name
-
-    # TEE 节点（keymaster/gatekeeper 走 QSEECom）
-    chmod 0660 /dev/qseecom
-    chown system drmrpc /dev/qseecom
-    chmod 0666 /dev/ion

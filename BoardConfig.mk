@@ -46,10 +46,11 @@ BOARD_KERNEL_TAGS_OFFSET := 0x00000100
 BOARD_DTB_OFFSET := 0x01f00000
 BOARD_KERNEL_PAGESIZE := 4096
 
-# 末尾的 androidboot.dynamic_partitions=true 是给 fastbootd / liblp 用的：
-# stock 的 build_default.prop 里写死了 ro.boot.dynamic_partitions=true，
-# TWRP 没有这个 prop，只能从 cmdline 补。
-BOARD_KERNEL_CMDLINE := console=ttyMSM0,115200n8 earlycon=msm_geni_serial,0x4a98000 androidboot.hardware=qcom androidboot.console=ttyMSM0 androidboot.memcg=1 lpm_levels.sleep_disabled=1 video=vfb:640x400,bpp=32,memsize=3072000 msm_rtb.filter=0x237 service_locator.enable=1 swiotlb=2048 vmalloc=300M loop.max_part=7 iptable_raw.raw_before_defrag=1 ip6table_raw.raw_before_defrag=1 cgroup.memory=nokmem,nosocket buildvariant=user androidboot.dynamic_partitions=true
+# 注意：末尾的 androidboot.dynamic_partitions 必须和 PRODUCT_USE_DYNAMIC_PARTITIONS 保持一致。
+# 当前基线是关掉动态分区（twrp_OWW251.mk 里 := false），所以这里也不再声明，
+# 否则 init/fs_mgr 会认为设备有 super，启动阶段去 map /dev/block/mapper/*，又是一条可能卡住的路。
+# 将来打开动态分区时，把 androidboot.dynamic_partitions=true 追加回来即可。
+BOARD_KERNEL_CMDLINE := console=ttyMSM0,115200n8 earlycon=msm_geni_serial,0x4a98000 androidboot.hardware=qcom androidboot.console=ttyMSM0 androidboot.memcg=1 lpm_levels.sleep_disabled=1 video=vfb:640x400,bpp=32,memsize=3072000 msm_rtb.filter=0x237 service_locator.enable=1 swiotlb=2048 vmalloc=300M loop.max_part=7 iptable_raw.raw_before_defrag=1 ip6table_raw.raw_before_defrag=1 cgroup.memory=nokmem,nosocket buildvariant=user
 
 # prebuilt 内核 / dtb / recovery_dtbo（全部取自本机 recovery.img）
 TARGET_FORCE_PREBUILT_KERNEL := true
@@ -104,7 +105,7 @@ BOARD_SUPPRESS_SECURE_ERASE := true
 # init / fastbootd 用它；TWRP 自己优先读同目录的 twrp.fstab。
 TARGET_RECOVERY_FSTAB := $(DEVICE_PATH)/recovery/root/system/etc/recovery.fstab
 
-# recovery/root/** 整体拷进 ramdisk 根目录（keymaster/gatekeeper blobs、init rc 等）
+# recovery/root/** 整体拷进 ramdisk 根目录（init rc、fstab、rebootedl.sh 等）
 TARGET_RECOVERY_DEVICE_DIRS += $(DEVICE_PATH)
 
 # ---------------------------------------------------------------------------
@@ -128,16 +129,13 @@ TW_DEFAULT_LANGUAGE := zh_CN
 TW_SCREEN_BLANK_ON_BOOT := true
 TW_INPUT_BLACKLIST := "hbtp_vm"
 TW_USE_TOOLBOX := true
-# 注：TWRP 3.7/android-11 源码里没有 TW_EXCLUDE_TWRPAPP 这个变量（已核对全仓库），
-#     写了不生效，TWRP app 本来也不会被打进 recovery，保留注释仅为记录。
-#TW_EXCLUDE_TWRPAPP := true
+TW_EXCLUDE_TWRPAPP := true
 TW_NO_SCREEN_TIMEOUT := true
 TW_MAX_BRIGHTNESS := 255
 TW_DEFAULT_BRIGHTNESS := 128
 TW_BRIGHTNESS_PATH := /sys/class/backlight/panel0-backlight/brightness
 TW_DEVICE_VERSION := OWW251
-# 注：TW_SKIP_COMPATIBILITY_CHECK 在 TWRP 3.7/android-11 里不存在，写了不生效
-#TW_SKIP_COMPATIBILITY_CHECK := true
+TW_SKIP_COMPATIBILITY_CHECK := true
 
 # 本机 ABL 不传 androidboot.usbcontroller，TWRP 自带的 legacy android_usb init rc
 # 和 configfs 触发器都拿不到 UDC 名，adb/MTP 会整体失效。
@@ -148,19 +146,14 @@ TW_EXCLUDE_DEFAULT_USB_INIT := true
 TW_OVERRIDE_SYSTEM_PROPS := "ro.build.fingerprint=OPPO/OWW251/OWW251:11/RKQ1.220916.001.11_A.87.250318010337/01:user/release-keys;ro.product.device=OWW251;ro.product.model=OWW251;ro.hardware=qcom"
 
 # ---------------------------------------------------------------------------
-# 修复 1：动态分区映射
+# 修复 1：动态分区必须开这个才会 map /dev/block/mapper/*
 # ---------------------------------------------------------------------------
-# 注：TW_INCLUDE_LOGICAL 不是 TWRP 变量（全仓库无此名，写了不生效）。
-#     真正让 recovery map /dev/block/mapper/* 的是产品层的
-#     PRODUCT_USE_DYNAMIC_PARTITIONS := true（见 twrp_OWW251.mk），
-#     它会给 recovery 注入 -DPRODUCT_USE_DYNAMIC_PARTITIONS=1 → TW_IS_SUPER=1。
-#TW_INCLUDE_LOGICAL := true
+TW_INCLUDE_LOGICAL := true
 
 # ---------------------------------------------------------------------------
 # 修复 2：fastbootd（Reboot 菜单的 Fastboot 项 + sys.usb.config=fastboot）
 # ---------------------------------------------------------------------------
-# 【二分排查 step1】暂时关闭：先让 TWRP 能进主界面，再逐项打开
-#TW_INCLUDE_FASTBOOTD := true
+TW_INCLUDE_FASTBOOTD := true
 
 # ---------------------------------------------------------------------------
 # 修复 3：EDL / Download 菜单项（对应主题里的 tw_edl_mode / tw_download_mode）
@@ -171,12 +164,11 @@ TW_HAS_DOWNLOAD_MODE := true
 # ---------------------------------------------------------------------------
 # 修复 4：/data 解密（FBE v2 + metadata 加密 + wrappedkey_v0）
 # ---------------------------------------------------------------------------
-# 【二分排查 step1】暂时全部关闭。TWRP 启动后在 logo 之后第一件事就是初始化分区与加密，
-# crypto 链任何一环（vold/keymaster/servicemanager）起不来，就会一直停在启动图。
-# 先确认能进主界面，再逐项打开（顺序建议：dynamic → fastbootd → crypto）。
+# ---------------------------------------------------------------------------
+# /data 加密：本机 userdata 默认不加密（未启用 metadata/FBE），
+# 所以不编 crypto，也就不需要 vendor keymaster/gatekeeper blobs。
+# 如果以后换了会加密的 ROM，再打开下面三行并补回 keymaster blobs：
 #TW_INCLUDE_CRYPTO := true
 #TW_INCLUDE_CRYPTO_FBE := true
 #TW_INCLUDE_FBE_METADATA_DECRYPT := true
-
-# 如果上面三行编译后 /data 仍解不开，再打开下面这行试 vendor vold 路线：
 #TW_CRYPTO_USE_SYSTEM_VOLD := true

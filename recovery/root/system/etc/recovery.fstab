@@ -6,7 +6,7 @@
 # 与原厂 recovery.fstab 的差异：
 #   * 去掉不存在的 odm 分区（真机 super 元数据里只有 system/system_ext/vendor/product）
 #   * metadata 用 /dev/block/bootdevice/by-name，和原厂一致
-#   * 【已移除 data 解密】data 的 fileencryption/inlinecrypt 标志已删除
+#   * userdata 默认不加密，data 条目不带 fileencryption（原厂 fstab 里的加密标志在这台机器上没有实际生效）
 
 #<src>                                                  <mnt_point>     <type>  <mnt_flags>                                                     <fs_mgr_flags>
 system                                                  /system         ext4    ro,barrier=1,discard                                            wait,logical,first_stage_mount
@@ -15,7 +15,7 @@ vendor                                                  /vendor         ext4    
 product                                                 /product        ext4    ro,barrier=1,discard                                            wait,logical,first_stage_mount
 /dev/block/bootdevice/by-name/cache                     /cache          ext4    nosuid,noatime,nodev,barrier=1                                   wait,check
 /dev/block/bootdevice/by-name/metadata                  /metadata       ext4    noatime,nosuid,nodev,discard                                     wait,check,formattable
-/dev/block/bootdevice/by-name/userdata                  /data           f2fs    noatime,nosuid,nodev,discard,reserve_root=32768,resgid=1065,fsync_mode=nobarrier latemount,wait,check,formattable,quota,reservedsize=128M,checkpoint=fs
+/dev/block/bootdevice/by-name/userdata                  /data           f2fs    noatime,nosuid,nodev,discard,reserve_root=32768,resgid=1065,fsync_mode=nobarrier,inlinecrypt latemount,wait,check,formattable,quota,reservedsize=128M
 /dev/block/bootdevice/by-name/persist                   /mnt/vendor/persist ext4 noatime,nosuid,nodev,barrier=1                                  wait
 /dev/block/bootdevice/by-name/misc                      /misc           emmc    defaults                                                        defaults
 /dev/block/bootdevice/by-name/boot                      /boot           emmc    defaults                                                        defaults

@@ -3,9 +3,8 @@
 #
 # recovery/root/** 由 TARGET_RECOVERY_DEVICE_DIRS 自动拷进 recovery ramdisk：
 #   recovery/root/system/etc/{recovery,twrp}.fstab   mount / fastbootd 用
-#   recovery/root/init.recovery.qcom*.rc             启动 keymaster/gatekeeper、建 /dev/block 链接
-#   recovery/root/system/bin/*                       vendor HAL（keymaster/gatekeeper）、rebootedl.sh
-#   recovery/root/{vendor,system}/lib/*              HAL 依赖库
+#   recovery/root/init.recovery.qcom*.rc             建 /dev/block 链接、UDC 名兜底
+#   recovery/root/system/bin/rebootedl.sh            EDL 兜底脚本
 #
 
 LOCAL_PATH := device/oppo/OWW251

@@ -2,22 +2,15 @@
 # TWRP product config - OPPO Watch X2 (OWW251)
 #
 
-# 基础 AOSP product（必须有，vendor/twrp/config/common.mk 只有 289 字节，
-# 不继承任何 base；缺了它会 lunch 失败或产物缺包）。参照 catfish 手表树写法。
+# 基础 AOSP product（必须有；vendor/twrp/config/common.mk 不继承任何 base，
+# catfish 等手表树同样先继承这一行）
 $(call inherit-product, $(SRC_TARGET_DIR)/product/full_base_telephony.mk)
 
 $(call inherit-product, vendor/twrp/config/common.mk)
 $(call inherit-product, device/oppo/OWW251/device.mk)
 
-# 真机是动态分区（super 4 GiB，组 qti_dynamic_partitions，见 BoardConfig）。
-# 打开后 recovery 才会：
-#   1) 编出 fastbootd 并置 TW_IS_SUPER=1（TWRP 能 map /dev/block/mapper/*）
-#   2) Reboot 菜单出现 Fastboot 项（对应 TW_INCLUDE_FASTBOOTD）
-#   3) 引入 liblp / health@2.1 等动态分区依赖
-# 【二分排查 step1】先关掉，等 TWRP 能进主界面再打开（super/liblp 也在启动路径上）
-#PRODUCT_USE_DYNAMIC_PARTITIONS := true
+# 【当前基线】先关掉动态分区：TWRP 能进主界面后再打开（super/liblp 也在启动路径上）
 PRODUCT_USE_DYNAMIC_PARTITIONS := false
-# TWRP 只需要 recovery.img，不需要生成 super 镜像
 PRODUCT_BUILD_SUPER_PARTITION := false
 
 PRODUCT_DEVICE := OWW251
